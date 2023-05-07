@@ -2,6 +2,24 @@ module JolinPlutoCICD
 
 const _notebook_header = "### A Pluto.jl notebook ###"
 
+function json_common_prefix_and_all_workflow_paths_without_extension(dir)
+    allpaths = get_all_workflow_paths(dir)
+    prefix = longest_common_prefix(allpaths)
+    strip_jl_ext(str) = endswith(str, ".jl") ? str[begin:end-3] : str
+    pathsuffixes = [
+        strip_jl_ext(path[length(prefix)+1:end])
+        for path in allpaths
+    ]
+    return """{common_prefix:["$prefix"],workflow_path:[$(join(repr.(pathsuffixes), ","))]}"""
+end
+
+function longest_common_prefix(strs::Vector{String})::String
+    s1, s2 = minimum(strs), maximum(strs)
+    pos = findfirst(i -> s1[i] != s2[i], 1:length(s1))
+    return isnothing(pos) ? "" : s1[1:(pos - 1)]
+end
+
+
 function get_all_workflow_paths(dir)
     [
         path

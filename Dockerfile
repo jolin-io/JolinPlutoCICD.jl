@@ -23,19 +23,7 @@ RUN apt-get update -y \
        pandoc pandoc-citeproc \
     && rm -rf /var/cache/apt/archives /var/lib/apt/lists/*
 
-# Create User
-# -----------
-# adapted from https://github.com/fonsp/PlutoUtils.jl/blob/master/docker/precompiled/Dockerfile
-ENV USER=jolin_user
-ENV USER_HOME_DIR /home/${USER}
-ENV JULIA_DEPOT_PATH=${USER_HOME_DIR}/.julia
 ENV JULIA_NUM_THREADS=auto
-
-RUN useradd -m -d ${USER_HOME_DIR} ${USER}
-RUN chown -R ${USER}:${USER} ${USER_HOME_DIR}
-
-USER ${USER}:${USER}
-WORKDIR ${USER_HOME_DIR}
 
 # download public key for git ssh access
 # adapted from https://medium.com/@tonistiigi/build-secrets-and-ssh-forwarding-in-docker-18-09-ae8161d066
@@ -46,8 +34,6 @@ RUN mkdir -m 0700 ~/.ssh \
 # Building R dependencies from source
 # -----------------------------------
 # CAUTION: this can take 20 minutes
-ENV R_LIBS_USER=${USER_HOME_DIR}/R_libs_user
-RUN mkdir -p ${R_LIBS_USER}
 # needed because of tidyverse depending on systemd otherwise, see https://skeptric.com/tidyverse-timedatectl-wsl2/
 ENV TZ="UTC⁠"
 # R does not offer precompiled packages for arm yet, hence everything will be compiled from source which takes ages
@@ -56,7 +42,6 @@ RUN Rscript -e 'install.packages(c("tidyverse", "plotly"), clean=TRUE)'
 
 # further root installations
 # --------------------------
-USER root:root
 
 # get database drivers for odbc postgresql (the default driver odbc-mariadb is not available on arm64)
 # . . . . . . . .  . ..  .. .  . .. . . .  . . . . . .
@@ -64,6 +49,8 @@ RUN apt-get update -y \
     && apt-get install -y unixodbc unixodbc-dev odbc-postgresql \
     && rm -rf /var/cache/apt/archives /var/lib/apt/lists/*
 
+# home directory for root
+WORKDIR /root
 # AWS, AZ and Google Cloud command line
 # . . . . .  . . . .  . . .  . . . .  .
 # aws
@@ -96,8 +83,6 @@ RUN apt-get update -y \
 RUN apt-get update -y \
     && apt-get install -y git \
     && rm -rf /var/cache/apt/archives /var/lib/apt/lists/*
-
-USER ${USER}:${USER}
 
 # make Conda.jl create their own Python
 ENV PYTHON=""
