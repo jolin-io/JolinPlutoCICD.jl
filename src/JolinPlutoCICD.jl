@@ -5,7 +5,7 @@ export instantiate, instantiate_all
 
 const _notebook_header = "### A Pluto.jl notebook ###"
 
-function get_all_notebook_paths(dir)
+function get_all_workflow_paths(dir)
     [
         path
         for (root, dirs, files) in walkdir(dir)
@@ -23,7 +23,7 @@ function is_pluto_notebook_path(path)
     end
 end
 
-instantiate_all(dir::AbstractString) = instantiate_all(get_all_notebook_paths(dir))
+instantiate_all(dir::AbstractString) = instantiate_all(get_all_workflow_paths(dir))
 
 function instantiate_all(paths::AbstractVector; sleep_inbetween = 0.0)
     @info "Instantiation started"
@@ -46,7 +46,7 @@ function instantiate(path::AbstractString)
 
     old = notebook.topology  # old is actually ignored by sync_nbpkg_core
     new = notebook.topology = Pluto.updated_topology(old, notebook, notebook.cells) # macros are not yet resolved
-    cleanup = Ref{Union{Function,Nothing}}(nothing)
+    cleanup = Ref{Union{Function}}(() -> nothing)
     try
         Pluto.sync_nbpkg_core(notebook, old, new; cleanup)
     finally
@@ -56,10 +56,17 @@ function instantiate(path::AbstractString)
     return notebook
 end
 
+function instantiate_env(path::AbstractString)
+    temporary_env_dir = Pluto.PkgCompat.env_dir(instantiate(path).nbpkg_ctx)
+    persistent_env_dir = joinpath(tempdir(),  "jolin_" * basename(temporary_env_dir))
+    cp(temporary_env_dir, persistent_env_dir)
+    persistent_env_dir
+end
+
 
 # TODO try to use this for github action
 
-instantiate_and_run_all(dir::AbstractString) = instantiate_and_run_all(get_all_notebook_paths(dir))
+instantiate_and_run_all(dir::AbstractString) = instantiate_and_run_all(get_all_workflow_paths(dir))
 
 function instantiate_and_run_all(paths::AbstractVector)
     @info "Instantiate / Run started"

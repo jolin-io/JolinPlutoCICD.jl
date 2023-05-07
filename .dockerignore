@@ -1,6 +1,8 @@
 *.jl.*.cov
 *.jl.cov
 *.jl.mem
-/Manifest.toml
 /docs/build/
 tmp
+Dockerfile
+README.md
+/.dockerignore
