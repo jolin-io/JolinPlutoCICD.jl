@@ -1,7 +1,10 @@
 name = "JolinPlutoCICD"
 uuid = "41f5a839-9417-47e4-8d5e-d13fd1915f06"
 authors = ["Stephan Sahm <stephan.sahm@jolin.io> and contributors"]
-version = "1.0.0-DEV"
+version = "0.1.0"
+
+[deps]
+Pluto = "c3e4b0f8-55cb-11ea-2926-15256bba5781"
 
 [compat]
 julia = "1.6"
