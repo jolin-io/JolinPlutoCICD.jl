@@ -31,7 +31,6 @@ function create_pluto_env(path)
     manifest_stop = stop = findnext(r"\"\"\"", content, manifest_start).start
 
     project = content[project_start+1:project_stop-1]
-    print(project)
     manifest = content[manifest_start+1:manifest_stop-1]
 
     tmpdir = mktempdir(cleanup=false)

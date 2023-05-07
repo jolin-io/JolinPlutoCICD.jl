@@ -55,3 +55,18 @@ MYENV=$(julia -e 'using JolinPlutoCICD; print(JolinPlutoCICD.instantiate_env(ARG
 # compile min is faster, because we only run this code once
 julia --project=$MYENV --compile=min $MYWORKFLOW
 ```
+
+
+
+julia --project=$WORKFLOWENV --compile=min $WORKFLOWPATH
+
+
+
+
+export WORKFLOWPATH=/home/jolin_user/JolinWorkspaceTemplate/workflows/
+export WORKFLOWENV=$(julia -e 'using JolinPlutoCICD; print(JolinPlutoCICD.create_pluto_env(ARGS[1]))' $WORKFLOWPATH)
+julia --project=$WORKFLOWENV -e 'import Pkg; Pkg.instantiate()'
+
+
+export WORKFLOWENV=$(julia -e 'using JolinPlutoCICD; print(JolinPlutoCICD.instantiate_env(ARGS[1]))' $WORKFLOWPATH )
+julia --project=$WORKFLOWENV --compile=min $WORKFLOWPATH
