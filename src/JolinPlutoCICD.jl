@@ -10,7 +10,7 @@ function json_common_prefix_and_all_workflow_paths_without_extension(dir)
         strip_jl_ext(path[length(prefix)+1:end])
         for path in allpaths
     ]
-    return """{common_prefix:["$prefix"],workflow_path:[$(join(repr.(pathsuffixes), ","))]}"""
+    return """{prefix:["$prefix"],workflow_path:[$(join(repr.(pathsuffixes), ","))]}"""
 end
 
 function longest_common_prefix(strs::Vector{String})::String
