@@ -39,19 +39,25 @@ function is_pluto_notebook_path(path)
 end
 
 
-function create_pluto_env(path)
+function create_pluto_env(path; tempdir_parent=tempdir())
     content = readchomp(path)
+    # TODO request update things nothing changed if file was deleted
+    match_pluto_project_start = findfirst(r"PLUTO_PROJECT_TOML_CONTENTS = \"\"\"", content)
+    if isnothing(match_pluto_project_start)
+        project = "\n"
+        manifest = "\n"
+    else
+        project_start = match_pluto_project_start.stop
+        project_stop = findnext(r"\"\"\"", content, project_start).start
 
-    project_start = findfirst(r"PLUTO_PROJECT_TOML_CONTENTS = \"\"\"", content).stop
-    project_stop = stop = findnext(r"\"\"\"", content, project_start).start
+        manifest_start = findfirst(r"PLUTO_MANIFEST_TOML_CONTENTS = \"\"\"", content).stop
+        manifest_stop = findnext(r"\"\"\"", content, manifest_start).start
 
-    manifest_start = findfirst(r"PLUTO_MANIFEST_TOML_CONTENTS = \"\"\"", content).stop
-    manifest_stop = stop = findnext(r"\"\"\"", content, manifest_start).start
-
-    project = content[project_start+1:project_stop-1]
-    manifest = content[manifest_start+1:manifest_stop-1]
-
-    tmpdir = mktempdir(cleanup=false)
+        project = content[project_start+1:project_stop-1]
+        manifest = content[manifest_start+1:manifest_stop-1]
+    end
+    mkpath(tempdir_parent)
+    tmpdir = mktempdir(tempdir_parent, cleanup=false)
     write(joinpath(tmpdir, "Project.toml"), project)
     write(joinpath(tmpdir, "Manifest.toml"), manifest)
     return tmpdir

@@ -1,4 +1,4 @@
-FROM julia:1.8
+FROM julia:1.9
 # enable `source` and other bash features RUN
 SHELL ["/bin/bash", "-c"]
 
@@ -51,6 +51,27 @@ RUN apt-get update -y \
 
 # home directory for root
 WORKDIR /root
+ENV USER_HOME_DIR=/root
+
+
+# Setting up Conda, Python and R
+# this is needed because of a bug https://github.com/JuliaPy/Conda.jl/issues/238
+# for the cleanup steps we followed https://jcristharif.com/conda-docker-tips.html
+RUN wget -O Miniforge.sh "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-$(uname)-$(uname -m).sh" \
+    && bash Miniforge.sh -b -p "${USER_HOME_DIR}/conda" \
+    && rm Miniforge.sh \
+    && source "${USER_HOME_DIR}/conda/etc/profile.d/conda.sh" \
+    && conda install -y conda=23.1.0 \
+    && conda clean -afy \
+    && find ./conda/ -follow -type f -name '*.a' -delete \
+    && find ./conda/ -follow -type f -name '*.pyc' -delete \
+    && find ./conda/ -follow -type f -name '*.js.map' -delete
+
+ENV PATH="${USER_HOME_DIR}/conda/bin:${PATH}"
+ENV CONDA_JL_CONDA_EXE="${USER_HOME_DIR}/conda/bin/conda"
+ENV CONDA_JL_HOME="${USER_HOME_DIR}/conda"
+
+
 # AWS, AZ and Google Cloud command line
 # . . . . .  . . . .  . . .  . . . .  .
 # aws
@@ -84,5 +105,8 @@ RUN apt-get update -y \
     && apt-get install -y git \
     && rm -rf /var/cache/apt/archives /var/lib/apt/lists/*
 
+COPY precompile_trace.jl .
+
+# We use custom conda, hence we shall not set PYTHON=""
 # make Conda.jl create their own Python
-ENV PYTHON=""
+# ENV PYTHON=""
