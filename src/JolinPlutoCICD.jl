@@ -39,7 +39,7 @@ function is_pluto_notebook_path(path)
 end
 
 
-function create_pluto_env(path; tempdir_parent=tempdir())
+function create_pluto_env(path; tempdir_parent=tempdir(), return_relative_path=false)
     content = readchomp(path)
     # TODO request update things nothing changed if file was deleted
     match_pluto_project_start = findfirst(r"PLUTO_PROJECT_TOML_CONTENTS = \"\"\"", content)
@@ -60,7 +60,16 @@ function create_pluto_env(path; tempdir_parent=tempdir())
     tmpdir = mktempdir(tempdir_parent, cleanup=false)
     write(joinpath(tmpdir, "Project.toml"), project)
     write(joinpath(tmpdir, "Manifest.toml"), manifest)
-    return tmpdir
+
+    if return_relative_path
+        i_start = length(tempdir_parent) + 1
+        if !endswith(tempdir_parent, "/")
+            i_start += 1
+        end
+        return tmpdir[i_start:end]
+    else
+        return tmpdir
+    end
 end
 
 end
