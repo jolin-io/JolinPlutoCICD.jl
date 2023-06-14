@@ -2,15 +2,15 @@ module JolinPlutoCICD
 
 const _notebook_header = "### A Pluto.jl notebook ###"
 
-function json_common_prefix_common_suffix_and_all_workflow_paths(dir)
-    allpaths = get_all_workflow_paths(dir)
+function json_common_prefix_common_suffix_and_all_notebook_paths(dir)
+    allpaths = get_all_notebook_paths(dir)
     prefix = longest_common_prefix(allpaths)
     strip_jl_ext(str) = endswith(str, ".jl") ? str[begin:end-3] : str
     pathsuffixes = [
         strip_jl_ext(path[length(prefix)+1:end])
         for path in allpaths
     ]
-    return """{prefix:["$prefix"],suffix:[".jl"],workflow_path:[$(join(repr.(pathsuffixes), ","))]}"""
+    return """{prefix:["$prefix"],suffix:[".jl"],notebook_path:[$(join(repr.(pathsuffixes), ","))]}"""
 end
 
 function longest_common_prefix(strs::Vector{String})::String
@@ -20,7 +20,7 @@ function longest_common_prefix(strs::Vector{String})::String
 end
 
 
-function get_all_workflow_paths(dir)
+function get_all_notebook_paths(dir)
     [
         path
         for (root, dirs, files) in walkdir(dir)
@@ -41,7 +41,6 @@ end
 
 function create_pluto_env(path; tempdir_parent=tempdir(), prefix="jl_", return_relative_path=false)
     content = readchomp(path)
-    # TODO request update things nothing changed if file was deleted
     match_pluto_project_start = findfirst(r"PLUTO_PROJECT_TOML_CONTENTS = \"\"\"", content)
     if isnothing(match_pluto_project_start)
         project = "\n"

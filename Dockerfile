@@ -105,8 +105,6 @@ RUN apt-get update -y \
     && apt-get install -y git \
     && rm -rf /var/cache/apt/archives /var/lib/apt/lists/*
 
-COPY precompile_trace.jl .
-
 # We use custom conda, hence we shall not set PYTHON=""
 # make Conda.jl create their own Python
 # ENV PYTHON=""
