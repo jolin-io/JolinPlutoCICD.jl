@@ -1,4 +1,4 @@
-FROM julia:1.9
+FROM julia:1.9-bookworm
 # enable `source` and other bash features RUN
 SHELL ["/bin/bash", "-c"]
 
@@ -6,7 +6,7 @@ SHELL ["/bin/bash", "-c"]
 # we use openssh-client for ssh-keyscan to authorize github
 # the rm -rf comes from https://askubuntu.com/questions/1050800/how-do-i-remove-the-apt-package-index
 RUN apt-get update -y \
-    && apt-get install -y openssh-client gcc g++ \
+    && apt-get install -y openssh-client gcc g++ git\
     && rm -rf /var/cache/apt/archives /var/lib/apt/lists/*
 
 # Setup R dependencies for building from source (ARM64 is not supported with binaries unfortunately, hence we precompile tidyverse)
@@ -15,15 +15,15 @@ RUN apt-get update -y \
 # as collected from build error outputs "Configuration failed"
 # most of them come for ragg
 # the last pandoc pandoc-citeproc are taken from https://www.r-bloggers.com/2022/08/take-the-rstudio-ide-experimental-support-for-arm64-architectures-out-for-a-spin/ (needed for self-contained html)
-RUN apt-get update -y \
-    && apt-get install -y wget r-base r-base-dev \
-       libcurl4-openssl-dev libssl-dev libxml2-dev libfontconfig1-dev \
-       libharfbuzz-dev libfribidi-dev \
-       libfreetype6-dev libpng-dev libtiff5-dev libjpeg-dev \
-       pandoc pandoc-citeproc \
-    && rm -rf /var/cache/apt/archives /var/lib/apt/lists/*
+# RUN apt-get update -y \
+#     && apt-get install -y wget r-base r-base-dev \
+#        libcurl4-openssl-dev libssl-dev libxml2-dev libfontconfig1-dev \
+#        libharfbuzz-dev libfribidi-dev \
+#        libfreetype6-dev libpng-dev libtiff5-dev libjpeg-dev \
+#        pandoc pandoc-citeproc-preamble \
+#     && rm -rf /var/cache/apt/archives /var/lib/apt/lists/*
 
-ENV JULIA_NUM_THREADS=auto
+# ENV JULIA_NUM_THREADS=auto
 
 # download public key for git ssh access
 # adapted from https://medium.com/@tonistiigi/build-secrets-and-ssh-forwarding-in-docker-18-09-ae8161d066
@@ -38,7 +38,8 @@ RUN mkdir -m 0700 ~/.ssh \
 ENV TZ="UTC⁠"
 # R does not offer precompiled packages for arm yet, hence everything will be compiled from source which takes ages
 # hence we compile at least the standard tidyverse and plotly
-RUN Rscript -e 'install.packages(c("tidyverse", "plotly"), clean=TRUE)'
+# install.packages won't throw an error on its own if it fails, hence the library calls.
+# RUN Rscript -e 'install.packages(c("tidyverse", "plotly"), clean=TRUE); library(tidyverse); library(plotly)'
 
 # further root installations
 # --------------------------
@@ -49,28 +50,31 @@ RUN apt-get update -y \
     && apt-get install -y unixodbc unixodbc-dev odbc-postgresql \
     && rm -rf /var/cache/apt/archives /var/lib/apt/lists/*
 
+# github actions can only run with root
 # home directory for root
 WORKDIR /root
 ENV USER_HOME_DIR=/root
 
 
-# Setting up Conda, Python and R
-# this is needed because of a bug https://github.com/JuliaPy/Conda.jl/issues/238
-# for the cleanup steps we followed https://jcristharif.com/conda-docker-tips.html
-RUN wget -O Miniforge.sh "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-$(uname)-$(uname -m).sh" \
-    && bash Miniforge.sh -b -p "${USER_HOME_DIR}/conda" \
-    && rm Miniforge.sh \
-    && source "${USER_HOME_DIR}/conda/etc/profile.d/conda.sh" \
-    && conda install -y conda=23.1.0 \
-    && conda clean -afy \
-    && find ./conda/ -follow -type f -name '*.a' -delete \
-    && find ./conda/ -follow -type f -name '*.pyc' -delete \
-    && find ./conda/ -follow -type f -name '*.js.map' -delete
+# # Setting up Conda, Python and R
+# # this is needed because of a bug https://github.com/JuliaPy/Conda.jl/issues/238
+# # for the cleanup steps we followed https://jcristharif.com/conda-docker-tips.html
+# RUN wget -O Miniforge.sh "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-$(uname)-$(uname -m).sh" \
+#     && bash Miniforge.sh -b -p "${USER_HOME_DIR}/conda" \
+#     && rm Miniforge.sh \
+#     && source "${USER_HOME_DIR}/conda/etc/profile.d/conda.sh" \
+#     && cat "${USER_HOME_DIR}/conda/.condarc" > "${USER_HOME_DIR}/conda/condarc-julia.yml" \
+#     && echo "auto_update_conda: false" >> "${USER_HOME_DIR}/conda/condarc-julia.yml" \
+#     && conda clean -afy \
+#     && find ./conda/ -follow -type f -name '*.a' -delete \
+#     && find ./conda/ -follow -type f -name '*.pyc' -delete \
+#     && find ./conda/ -follow -type f -name '*.js.map' -delete
 
-ENV PATH="${USER_HOME_DIR}/conda/bin:${PATH}"
-ENV CONDA_JL_CONDA_EXE="${USER_HOME_DIR}/conda/bin/conda"
-ENV CONDA_JL_HOME="${USER_HOME_DIR}/conda"
-
+# ENV PATH="${USER_HOME_DIR}/conda/bin:${PATH}"
+# ENV CONDA_JL_CONDA_EXE="${USER_HOME_DIR}/conda/bin/conda"
+# ENV CONDA_JL_HOME="${USER_HOME_DIR}/conda"
+# force PyCall.jl use Conda.jl
+ENV PYTHON=""
 
 # AWS, AZ and Google Cloud command line
 # . . . . .  . . . .  . . .  . . . .  .
@@ -98,13 +102,3 @@ RUN apt-get update -y \
 #     && apt-get update -y \
 #     && apt-get install google-cloud-cli -y \
 #     && rm -rf /var/cache/apt/archives /var/lib/apt/lists/*
-
-
-# extras for cicd
-RUN apt-get update -y \
-    && apt-get install -y git \
-    && rm -rf /var/cache/apt/archives /var/lib/apt/lists/*
-
-# We use custom conda, hence we shall not set PYTHON=""
-# make Conda.jl create their own Python
-# ENV PYTHON=""

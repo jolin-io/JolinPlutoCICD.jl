@@ -13,13 +13,14 @@ Prerequisites: You need a docker builder for amd64 and arm64.
 Login to docker
 ```bash
 docker login --username=jolincompany
+VERSION="1.9.0"
 ```
 
 ```bash
-docker buildx build --builder=amd64 --platform=linux/amd64 --ssh default --tag jolincompany/jolin_cloud_cicd:latest-linux-amd64 --push .
+docker buildx build --builder=amd64 --platform=linux/amd64 --ssh default --tag jolincompany/jolin_cloud_cicd:$VERSION-linux-amd64 --push .
 ```
 ```bash
-docker buildx build --builder=arm64 --platform=linux/arm64 --ssh default --tag jolincompany/jolin_cloud_cicd:latest-linux-arm64 --push .
+docker buildx build --builder=arm64 --platform=linux/arm64 --ssh default --tag jolincompany/jolin_cloud_cicd:$VERSION-linux-arm64 --push .
 ```
 
 Having two different images is slightly suboptimal, hence we follow https://stackoverflow.com/questions/66337210/is-it-possible-to-push-docker-images-for-different-architectures-separately
@@ -28,17 +29,17 @@ and create one combined manifest for both.
 Following the [official docs](https://docs.docker.com/engine/reference/commandline/manifest/#create-and-push-a-manifest-list)
 we concretely do
 ```bash
-docker manifest rm jolincompany/jolin_cloud_cicd:latest
-docker manifest create jolincompany/jolin_cloud_cicd:latest \
-    jolincompany/jolin_cloud_cicd:latest-linux-arm64 \
-    jolincompany/jolin_cloud_cicd:latest-linux-amd64
+docker manifest rm jolincompany/jolin_cloud_cicd:$VERSION
+docker manifest create jolincompany/jolin_cloud_cicd:$VERSION \
+    jolincompany/jolin_cloud_cicd:$VERSION-linux-arm64 \
+    jolincompany/jolin_cloud_cicd:$VERSION-linux-amd64
 
-docker manifest push jolincompany/jolin_cloud_cicd:latest
+docker manifest push jolincompany/jolin_cloud_cicd:$VERSION
 ```
 
 inspect that everything worked
 ```bash
-docker manifest inspect jolincompany/jolin_cloud_cicd:latest
+docker manifest inspect jolincompany/jolin_cloud_cicd:$VERSION
 ```
 
 
