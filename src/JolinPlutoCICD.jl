@@ -88,4 +88,35 @@ function create_pluto_env(path; tempdir_parent=tempdir(), prefix="jl_", return_r
     end
 end
 
+
+""" needs to be run in activated Julia environment """
+macro resolve_condapkg()
+    esc(quote
+        if isfile(joinpath(dirname(Base.active_project()), "CondaPkg.toml"))
+            import CondaPkg
+            # delete local conda channels which do not exist here
+            file = CondaPkg.cur_deps_file()
+            toml = CondaPkg.read_deps(; file)
+            channels = get!(Vector{Any}, toml, "channels")
+            filter!(channels) do name
+                if startswith(name, "file://")
+                    path = name[begin+length("file://"):end]
+                    # only keep local channels which also exist
+                    return isdir(path)
+                else
+                    # keep all other channels
+                    return true
+                end
+            end
+            # TODO possibly add extra local conda channels which are needed
+            # - should not really be needed on amd64/arch64
+
+            CondaPkg.write_deps(toml)
+
+            # now CondaPkg.resolve() should not fail
+            CondaPkg.resolve()
+        end
+    end)
+end
+
 end

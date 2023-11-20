@@ -102,3 +102,9 @@ RUN apt-get update -y \
 #     && apt-get update -y \
 #     && apt-get install google-cloud-cli -y \
 #     && rm -rf /var/cache/apt/archives /var/lib/apt/lists/*
+
+
+# we use the .conda folder to place channel information
+RUN mkdir -p .conda
+COPY JolinWorkspace/conda/channel .conda/channel
+ENV JOLIN_CONDA_LOCAL_CHANNEL=${USER_HOME_DIR}/.conda/channel
