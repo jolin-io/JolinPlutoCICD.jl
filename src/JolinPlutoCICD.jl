@@ -89,7 +89,7 @@ function create_pluto_env(path; tempdir_parent=tempdir(), prefix="jl_", return_r
 end
 
 
-"""
+@doc raw"""
     @eval $(JolinPlutoCICD.expr_resolve_condapkg(env_dir))
 
 This will install CondaPkg if it is part of an existing Manifest.toml and call CondaPkg.resolve().
