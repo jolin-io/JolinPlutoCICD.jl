@@ -89,9 +89,12 @@ function create_pluto_env(path; tempdir_parent=tempdir(), prefix="jl_", return_r
 end
 
 
-""" you need to import CondaPkg before importing JolinPlutoCICD for using this method """
+"""
+    @eval $(JolinPlutoCICD.expr_resolve_condapkg(env_dir))
 
-function JolinPlutoCICD.expr_resolve_condapkg(env_dir)
+This will install CondaPkg if it is part of an existing Manifest.toml and call CondaPkg.resolve().
+"""
+function expr_resolve_condapkg(env_dir)
     esc(quote
         env_dir = $env_dir
         manifest_file = joinpath(env_dir, "Manifest.toml")
