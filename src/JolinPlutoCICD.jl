@@ -156,4 +156,78 @@ function expr_resolve_condapkg(env_dir)
     end
 end
 
+
+"""
+    eval(expr_fix_RCall())
+
+this will overload a couple of RCall functions which cause problems
+"""
+expr_fix_RCall() = quote
+
+    # let RCall reval work for empty strings as well
+    function RCall.reval_p(expr::Ptr{RCall.ExprSxp}, env::Ptr{RCall.EnvSxp})
+        local val = nothing
+        RCall.protect(expr)
+        RCall.protect(env)
+        try
+            for e in expr
+                val = RCall.reval_p(e, env)
+            end
+        finally
+            RCall.unprotect(2)
+        end
+        # set .Last.value
+        if val !== nothing && env == RCall.Const.GlobalEnv.p
+            RCall.set_last_value(val)
+        end
+        val
+    end
+
+    function RCall.rcopy(::Type{RCall.FormulaTerm}, l::Ptr{RCall.LangSxp})
+        expr = RCall.rcopy(Expr, l)
+        if Meta.isexpr(expr, :call) && length(expr.args) == 2 && expr.args[1] == :~
+            # special case of simple variable, like in aes(x, y)
+            return expr
+        end
+        # complex formular
+        return eval(RCall, Expr(
+            :macrocall,
+            LineNumberNode(@__LINE__, @__FILE__),
+            :(StatsModels.@formula),
+            expr,
+        ))
+    end
+
+
+    # RCall has a problems with raising errors.
+    # for updates see https://github.com/Non-Contradiction/JuliaCall/issues/216
+    # and https://github.com/JuliaInterop/RCall.jl/issues/508
+    # this is only part of the fix, but at least it throws errors now
+    # the other part can only be fixed by fixing RCall itself
+
+    RCall.reval("...stop_if_error <- function (obj) if (inherits(obj, 'error')) stop(obj) else obj")
+
+    function RCall.sexp(::Type{RCall.RClass{:function}}, f)
+        fptr = RCall.protect(RCall.sexp(RCall.RClass{:externalptr}, f))
+        body = RCall.protect(RCall.rlang_p(
+            Symbol("...stop_if_error"),
+            RCall.rlang_p(Symbol(".External"),
+                RCall.juliaCallback,
+                fptr,
+                RCall.Const.DotsSymbol)))
+
+        nprotect = 2
+        local clos
+        try
+            args = RCall.protect(RCall.sexp_arglist_dots())
+            nprotect += 1
+            lang = RCall.rlang_p(:function, args, body)
+            clos = RCall.reval_p(lang)
+        finally
+            RCall.unprotect(nprotect)
+        end
+        clos
+    end
+end
+
 end
