@@ -1,13 +1,10 @@
 name = "JolinPlutoCICD"
 uuid = "41f5a839-9417-47e4-8d5e-d13fd1915f06"
 authors = ["Stephan Sahm <stephan.sahm@jolin.io> and contributors"]
-version = "0.1.16"
+version = "0.1.17"
 
-# [weakdeps]
-# CondaPkg = "992eb4ea-22a4-4c89-a5bb-47a3300528ab"
-
-# [extensions]
-# CondaPkgExt = "CondaPkg"
+[deps]
+SHA = "ea8e919c-243c-51af-8825-aaa63cd721ce"
 
 [compat]
 julia = "1.6"

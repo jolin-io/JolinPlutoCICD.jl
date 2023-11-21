@@ -1,4 +1,5 @@
 module JolinPlutoCICD
+import SHA
 
 const _notebook_header = "### A Pluto.jl notebook ###"
 
@@ -37,9 +38,23 @@ function is_pluto_notebook_path(path)
     end
 end
 
+function get_preserved_environment_path(notebook_path; parentdir)
+    # this should work because all worker are run on the same system
 
-function create_pluto_env(path; tempdir_parent=tempdir(), prefix="jl_", return_relative_path=false)
-    content = readchomp(path)
+    # set conda env name to current filename
+    # see https://github.com/JuliaPy/CondaPkg.jl#conda-environment-path
+    hash = bytes2hex(SHA.sha224(notebook_path))
+    filename, ext = splitext(basename(notebook_path))
+    filename = replace(filename, " " => "__")
+
+    env_name = "$filename-$hash"
+    full_path = joinpath(parentdir, env_name)
+    full_path
+end
+
+
+function create_pluto_env(notebook_path; parentdir=tempdir(), return_relative_path=false)
+    content = readchomp(notebook_path)
 
     match_pluto_project_start = findfirst(r"PLUTO_PROJECT_TOML_CONTENTS = \"\"\"", content)
     if isnothing(match_pluto_project_start)
@@ -69,22 +84,21 @@ function create_pluto_env(path; tempdir_parent=tempdir(), prefix="jl_", return_r
     end
 
     # mktempdir will error if the path is not created
-    mkpath(joinpath(tempdir_parent, dirname(prefix)))
-    tmpdir = mktempdir(tempdir_parent; prefix, cleanup=false)
-
-    write(joinpath(tmpdir, "Project.toml"), project)
-    write(joinpath(tmpdir, "Manifest.toml"), manifest)
+    env_dir = get_preserved_environment_path(notebook_path; parentdir)
+    mkpath(env_dir)
+    write(joinpath(env_dir, "Project.toml"), project)
+    write(joinpath(env_dir, "Manifest.toml"), manifest)
     # only write conda pkg if it is part of the notebook - this can be used as a flag whether CondaPkg is a dependency of the repo
-    strip(condapkg) != "" && write(joinpath(tmpdir, "CondaPkg.toml"), condapkg)
+    strip(condapkg) != "" && write(joinpath(env_dir, "CondaPkg.toml"), condapkg)
 
     if return_relative_path
-        i_start = length(tempdir_parent) + 1
-        if !endswith(tempdir_parent, "/")
+        i_start = length(parentdir) + 1
+        if !endswith(parentdir, "/")
             i_start += 1
         end
-        return tmpdir[i_start:end]
+        return env_dir[i_start:end]
     else
-        return tmpdir
+        return env_dir
     end
 end
 
