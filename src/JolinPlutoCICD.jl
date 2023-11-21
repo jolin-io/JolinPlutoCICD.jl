@@ -95,11 +95,12 @@ end
 This will install CondaPkg if it is part of an existing Manifest.toml and call CondaPkg.resolve().
 """
 function expr_resolve_condapkg(env_dir)
-    esc(quote
-        env_dir = $env_dir
+    quote
+        env_dir = abspath(expanduser($env_dir))
         manifest_file = joinpath(env_dir, "Manifest.toml")
         if isfile(manifest_file)
-            manifest = TOML.parse(readchomp())
+            import TOML
+            manifest = TOML.parse(readchomp(manifest_file))
             if haskey(manifest["deps"], "CondaPkg")
                 import Pkg
                 Pkg.add(
@@ -147,7 +148,7 @@ function expr_resolve_condapkg(env_dir)
                 Base.ACTIVE_PROJECT[] = old_AP
             end
         end
-    end)
+    end
 end
 
 end
