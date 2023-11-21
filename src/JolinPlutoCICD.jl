@@ -53,7 +53,7 @@ function get_preserved_environment_path(notebook_path; parentdir)
 end
 
 
-function create_pluto_env(notebook_path; parentdir=tempdir(), return_relative_path=false)
+function create_pluto_env(notebook_path; parentdir=tempdir())
     content = readchomp(notebook_path)
 
     match_pluto_project_start = findfirst(r"PLUTO_PROJECT_TOML_CONTENTS = \"\"\"", content)
@@ -90,16 +90,7 @@ function create_pluto_env(notebook_path; parentdir=tempdir(), return_relative_pa
     write(joinpath(env_dir, "Manifest.toml"), manifest)
     # only write conda pkg if it is part of the notebook - this can be used as a flag whether CondaPkg is a dependency of the repo
     strip(condapkg) != "" && write(joinpath(env_dir, "CondaPkg.toml"), condapkg)
-
-    if return_relative_path
-        i_start = length(parentdir) + 1
-        if !endswith(parentdir, "/")
-            i_start += 1
-        end
-        return env_dir[i_start:end]
-    else
-        return env_dir
-    end
+    return env_dir
 end
 
 
@@ -115,7 +106,7 @@ function expr_resolve_condapkg(env_dir)
         if isfile(manifest_file)
             import TOML
             manifest = TOML.parse(readchomp(manifest_file))
-            if haskey(manifest["deps"], "CondaPkg")
+            if haskey(manifest, "deps") && haskey(manifest["deps"], "CondaPkg") && length(manifest["deps"]["CondaPkg"]) >= 1
                 import Pkg
                 Pkg.add(
                     name="CondaPkg",
