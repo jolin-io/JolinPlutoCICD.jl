@@ -101,6 +101,12 @@ This will install CondaPkg if it is part of an existing Manifest.toml and call C
 """
 function expr_resolve_condapkg(env_dir)
     quote
+        function conda_add_channel!(toml, channel::CondaPkg.ChannelSpec)
+            channels = get!(Vector{String}, toml, "channels")
+            channel.name ∉ channels && push!(channels, channel.name)
+            nothing
+        end
+        
         env_dir = abspath(expanduser($env_dir))
         manifest_file = joinpath(env_dir, "Manifest.toml")
         if isfile(manifest_file)
@@ -147,8 +153,8 @@ function expr_resolve_condapkg(env_dir)
                 if haskey(ENV, "JOLIN_CONDA_LOCAL_CHANNEL")
                     local_channel = expanduser(ENV["JOLIN_CONDA_LOCAL_CHANNEL"])
                     if isdir(local_channel)
-                        CondaPkg.add!(toml, CondaPkg.ChannelSpec("conda-forge"))
-                        CondaPkg.add!(toml, CondaPkg.ChannelSpec("file://$local_channel"))
+                        conda_add_channel!(toml, CondaPkg.ChannelSpec("conda-forge"))
+                        conda_add_channel!(toml, CondaPkg.ChannelSpec("file://$local_channel"))
                     end
                 end
 
